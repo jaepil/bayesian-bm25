@@ -1,6 +1,8 @@
 # Bayesian BM25 Experimental Validation
 
-Pure Python experimental code that validates the mathematical claims in the [Bayesian BM25 paper](https://doi.org/10.5281/zenodo.18414941). No external dependencies -- uses dict-based test documents with hand-crafted vector embeddings, simple string matching for lexical search, and brute-force cosine similarity for vector search.
+Hybrid search -- combining keyword matching (BM25) with vector similarity -- is now standard practice, but the combination method is usually ad-hoc: a hand-tuned weighted sum, or Reciprocal Rank Fusion that discards score magnitudes entirely. The [Bayesian BM25 paper](https://doi.org/10.5281/zenodo.18414941) solves this by converting raw BM25 scores into calibrated probabilities via Bayes' theorem. Once both lexical and vector signals are valid probabilities, they combine through standard probability theory -- $P(A \cap B)$ for AND, $P(A \cup B)$ for OR -- with no tuning parameters and formal guarantees on the output bounds.
+
+This repository is a pure Python experimental validation of that paper. Ten experiments verify the core claims numerically: formula equivalence, score calibration, monotonicity, prior bounds, IDF properties, hybrid search bounds, method comparison, numerical stability, parameter learning convergence, and conjunction/disjunction bounds. All 10 pass. No external dependencies -- uses dict-based test documents with hand-crafted vector embeddings, simple string matching for lexical search, and brute-force cosine similarity for vector search.
 
 ## Quick Start
 
@@ -75,6 +77,23 @@ run_experiments   -> experiments, corpus, tokenizer
 Embedding dimensions: `[ML, DL/neural, IR/search, ranking, DB, distributed, probability, vectors]`
 
 7 queries covering common multi-term, rare terms, single term, hybrid, and multi-term specific match scenarios. Each query includes pre-tokenized terms, an embedding vector, and a list of relevant document IDs.
+
+## Experiment Results
+
+All 10 experiments pass. Corpus: 20 documents, avgdl=10.8, vocabulary=154 terms, 7 queries.
+
+| # | Experiment | Result | Key Observation |
+|---|-----------|--------|-----------------|
+| 1 | BM25 Formula Equivalence | PASS | max_diff=$4.44 \times 10^{-16}$ across 280 comparisons. The standard form and rewritten form are identical to floating-point epsilon, confirming the algebraic equivalence proof. |
+| 2 | Score Calibration | PASS | Every Bayesian output falls in $[0, 1]$ and the ranking order from raw BM25 is fully preserved. The sigmoid-based Bayesian transformation is a monotonic mapping that does not distort relative document ordering. |
+| 3 | Monotonicity Preservation | PASS | Synthetic test confirms that the posterior is strictly monotonic in the raw BM25 score for any fixed prior. Higher term frequency always produces a higher relevance probability. |
+| 4 | Prior Bounds | PASS | Observed prior range $[0.3146, 0.4126]$, well within the theoretical $[0.1, 0.9]$. The composite prior is conservative: moderate TF values and near-average document lengths keep priors near 0.35, preventing the prior from dominating the posterior. |
+| 5 | IDF Properties | PASS | IDF is non-negative for all terms with $df \le N/2$, monotonically decreases as document frequency rises, and every actual term score stays below the $(k_1 + 1) \cdot \text{IDF}$ upper bound. |
+| 6 | Hybrid Search Quality | PASS | 140 query-document pairs tested. Probabilistic AND never exceeds $\min(P_{\text{lex}}, P_{\text{vec}})$ and probabilistic OR never falls below $\max(P_{\text{lex}}, P_{\text{vec}})$. The independence-assumption bounds hold without exception. |
+| 7 | Naive vs RRF vs Bayesian | PASS | The five methods (BM25, Bayesian, hybrid OR, naive sum, RRF) produce different top-5 rankings for 7 queries. Hybrid OR surfaces semantically relevant documents (e.g., d20 for "vector search embeddings") that pure BM25 misses, while naive sum and RRF lack this capability due to scale mismatch or rank-only information. |
+| 8 | Log-space Stability | PASS | 26 tests with probabilities from $10^{-15}$ to $1 - 10^{-10}$ and sigmoid inputs from $-700$ to $700$. No NaN, no Inf, all results in $[0, 1]$. Log-space computation and the numerically stable sigmoid eliminate catastrophic cancellation and overflow. |
+| 9 | Parameter Learning | PASS | Gradient descent learned $\alpha = 4.3138$, $\beta = 0.7431$. Cross-entropy loss dropped from $0.5750$ to $0.0626$ (89% reduction) with all 500 steps monotonically decreasing. Positive $\alpha$ confirms that higher BM25 scores correlate with relevance. The steep $\alpha$ indicates a sharp decision boundary: the sigmoid transitions rapidly around the learned threshold $\beta$. |
+| 10 | Conjunction/Disjunction Bounds | PASS | 61 probability combinations (49 pairs + 12 triples) all satisfy $P(A \cap B) \le \min(P(A), P(B))$, $P(A \cup B) \ge \max(P(A), P(B))$, and $P(A \cap B) \le P(A \cup B)$. These are necessary properties for any valid probabilistic fusion framework. |
 
 ## Key Formulas Implemented
 
