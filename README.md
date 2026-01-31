@@ -2,6 +2,8 @@
 
 Hybrid search -- combining keyword matching (BM25) with vector similarity -- is now standard practice, but the combination method is usually ad-hoc: a hand-tuned weighted sum, or Reciprocal Rank Fusion that discards score magnitudes entirely. The [Bayesian BM25 paper](https://doi.org/10.5281/zenodo.18414941) solves this by converting raw BM25 scores into calibrated probabilities via Bayes' theorem. Once both lexical and vector signals are valid probabilities, they combine through standard probability theory -- $P(A \cap B)$ for AND, $P(A \cup B)$ for OR -- with no tuning parameters and formal guarantees on the output bounds.
 
+**The theory was originally formalized and implemented in C++ for [Cognica Database](https://cognica.io) in February 2025, and has been battle-tested against large-scale production data for nearly a year.**
+
 This repository is a pure Python experimental validation of that paper. Ten experiments verify the core claims numerically: formula equivalence, score calibration, monotonicity, prior bounds, IDF properties, hybrid search bounds, method comparison, numerical stability, parameter learning convergence, and conjunction/disjunction bounds. All 10 pass. No external dependencies -- uses dict-based test documents with hand-crafted vector embeddings, simple string matching for lexical search, and brute-force cosine similarity for vector search.
 
 ## Quick Start
