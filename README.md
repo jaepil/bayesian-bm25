@@ -1,5 +1,7 @@
 # Bayesian BM25 Experimental Validation
 
+> **Note**: This repository contains experimental code for validating the paper only. For the reference implementation, see [cognica-io/bayesian-bm25](https://github.com/cognica-io/bayesian-bm25).
+
 Hybrid search -- combining keyword matching (BM25) with vector similarity -- is now standard practice, but the combination method is usually ad-hoc: a hand-tuned weighted sum, or Reciprocal Rank Fusion that discards score magnitudes entirely. The [Bayesian BM25 paper](https://doi.org/10.5281/zenodo.18414941) solves this by converting raw BM25 scores into calibrated probabilities via Bayes' theorem. Once both lexical and vector signals are valid probabilities, they combine through standard probability theory -- $P(A \cap B)$ for AND, $P(A \cup B)$ for OR -- with no tuning parameters and formal guarantees on the output bounds.
 
 **The theory was originally formalized and implemented in C++ for [Cognica Database](https://cognica.io) in February 2025, and has been battle-tested against large-scale production data for nearly a year.**
